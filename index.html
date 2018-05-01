@@ -1,0 +1,114 @@
+<meta charset="utf-8">
+<html>
+  <head></head>
+  <body>
+    SKrr
+    <canvas width="800" height="500" id="canvas" style="border: 1px solid black"></canvas>
+
+
+    <script src="../../p5/p5.js"></script>
+    <script>
+      let canvas = document.getElementById("canvas");
+      let ctx = canvas.getContext("2d");
+
+      let url = 'https://randomuser.me/api/?results=2';
+
+      let scb = 'http://api.scb.se/OV0104/v1/doris/sv/ssd/BE/BE0101/BE0101A/BefolkningNy';
+
+      let scb2 = 'http://api.scb.se/OV0104/v1/doris/sv/ssd/START/OE/OE0202/Statsskuld';
+
+      // fetch(url)
+      // .then((resp) => resp.json())
+      // .then(function(data){
+      //   console.log(data);
+      // });
+
+
+
+
+      function communicate(message,callback){
+        if (window.XMLHttpRequest) {
+          var xmlhttp=new XMLHttpRequest();
+        }
+        xmlhttp.onreadystatechange= function() {
+          if (this.readyState==4 && this.status==200) {
+            var res = this.responseText;
+            callback(res);
+            //console.log(res);
+            //document.getElementById("connections").innerHTML += ("<tr><td>" + message + "</td><td>" + res + "</td></tr>" );
+          }
+        }
+        xmlhttp.open("POST",scb2,true);
+        xmlhttp.send(skuld);
+      }
+
+      let query = {
+        query: [{
+         code: "ContentsCode",
+          selection: {
+            filter: "item",
+            values: ["BE0101N1"]
+           }
+        },
+        {
+          code: "Tid",
+          selection: {
+           filter: "item",
+           values: ["2008","2009","2010","2011"]
+          }
+         }
+        ],
+        response: {
+          format: "json"
+         }
+       };
+
+       let skuld = `{
+  "query": [
+    {
+      "code": "Kontopost",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "RG200"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json"
+  }
+}`;
+
+      communicate("",function(data){
+          console.log(JSON.parse(data).data);
+          let dataPoints = JSON.parse(data).data;
+          let len = dataPoints.length;
+          console.log(len);
+          let x = 10;
+          let y = 10;
+          ctx.beginPath();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle="#3377ff"; 
+          ctx.moveTo(x,canvas.height-y);
+          for(let d of dataPoints){
+            x += (canvas.width-20)/len;
+            ctx.lineTo(x,canvas.height - d.values[0]/4000);
+          }
+          ctx.stroke();
+       })
+
+
+    /*  function setup(){
+        loadJSON(scb+JSON.stringify(query),gotData,'jsonp');
+
+        function gotData(data){
+          console.log(data);
+        }
+      }
+
+*/
+
+    </script>
+  </body>
+</html>
