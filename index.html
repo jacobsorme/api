@@ -3,7 +3,7 @@
   <head></head>
   <body>
     SKrr
-    <canvas width="800" height="500" id="canvas" style="border: 1px solid black"></canvas>
+    <canvas width="1000" height="500" id="canvas" style="border: 1px solid black"></canvas>
 
 
     <script src="../../p5/p5.js"></script>
@@ -16,6 +16,11 @@
       let scb = 'http://api.scb.se/OV0104/v1/doris/sv/ssd/BE/BE0101/BE0101A/BefolkningNy';
 
       let scb2 = 'http://api.scb.se/OV0104/v1/doris/sv/ssd/START/OE/OE0202/Statsskuld';
+
+
+      let scb3 = 'http://api.scb.se/OV0104/v1/doris/sv/ssd/START/NR/NR0103/NR0103K/SektorENS2010ArBR';
+
+      let scb4 = 'http://api.scb.se/OV0104/v1/doris/sv/ssd/START/BE/BE0101/BE0101A/BefolkningNy';
 
       // fetch(url)
       // .then((resp) => resp.json())
@@ -38,8 +43,8 @@
             //document.getElementById("connections").innerHTML += ("<tr><td>" + message + "</td><td>" + res + "</td></tr>" );
           }
         }
-        xmlhttp.open("POST",scb2,true);
-        xmlhttp.send(skuld);
+        xmlhttp.open("POST",scb4,true);
+        xmlhttp.send(age);
       }
 
       let query = {
@@ -80,7 +85,102 @@
   }
 }`;
 
-      communicate("",function(data){
+let age = `{
+  "query": [
+    {
+      "code": "Region",
+      "selection": {
+        "filter": "vs:RegionKommun07",
+        "values": [
+          "0125",
+          "0180",
+          "0380",
+          "1291",
+          "2584"
+        ]
+      }
+    },
+    {
+      "code": "Alder",
+      "selection": {
+        "filter": "agg:Ålder5år",
+        "values": [
+          "-4",
+          "5-9",
+          "10-14",
+          "15-19",
+          "20-24",
+          "25-29",
+          "30-34",
+          "35-39",
+          "40-44",
+          "45-49",
+          "50-54",
+          "55-59",
+          "60-64",
+          "65-69",
+          "70-74",
+          "75-79",
+          "80-84",
+          "85-89",
+          "90-94",
+          "95-99",
+          "100+"
+        ]
+      }
+    },
+    {
+      "code": "ContentsCode",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "BE0101N1"
+        ]
+      }
+    },
+    {
+      "code": "Tid",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "2017"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json"
+  }
+}`;
+
+
+      let cash = `{
+  "query": [
+    {
+      "code": "Sektor",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "S1"
+        ]
+      }
+    },
+    {
+      "code": "Tillgangsslag",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "A"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json"
+  }
+}`;
+
+      /*communicate("",function(data){
           console.log(JSON.parse(data).data);
           let dataPoints = JSON.parse(data).data;
           let len = dataPoints.length;
@@ -89,14 +189,83 @@
           let y = 10;
           ctx.beginPath();
           ctx.lineWidth = 2;
-          ctx.strokeStyle="#3377ff"; 
+          ctx.strokeStyle="#3377ff";
           ctx.moveTo(x,canvas.height-y);
           for(let d of dataPoints){
             x += (canvas.width-20)/len;
             ctx.lineTo(x,canvas.height - d.values[0]/4000);
           }
           ctx.stroke();
-       })
+       })*/
+
+       communicate("",function(d){
+         let data = JSON.parse(d);
+         console.log(data);
+         let values = data.data;
+         let m = new Map();
+         for(let o of values){
+           if(!m.has(o.key[0])) m.set(o.key[0],[parseInt(o.values[0]),new Map().set(o.key[1],parseInt(o.values[0]))]);
+           else {
+             m.set(o.key[0], [m.get(o.key[0])[0] + parseInt(o.values[0]), m.get(o.key[0])[1]]); // Add to total
+             let map = m.get(o.key[0])[1];
+             map.set(o.key[1],parseInt(o.values[0])); // Set the number of persons to age
+           }
+         }
+         console.log(m);
+         let originalx = 10;
+         let x = originalx;
+
+        let muncipalities = new Map();
+        muncipalities.set("0125","Ekerö");
+        muncipalities.set("0180","Stockholm");
+        muncipalities.set("0380","Uppsala");
+        muncipalities.set("1291","Simrishamn");
+        muncipalities.set("2584","Kiruna");
+
+        ctx.fillStyle = "#fff"; 
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+         let colors = [];
+        let texted = false;
+         m.forEach(function(v,k,m){
+           let totalPeople = v[0];
+           let map = v[1];
+           ctx.fillStyle = randomColor();
+           colors.push([k,ctx.fillStyle]);
+           map.forEach(function(people,age,innerMap){
+             let scale = 3000;
+             console.log(people + "    " +totalPeople);
+             ctx.fillRect(x,-30+canvas.height-scale*(people/totalPeople),5,scale*(people/totalPeople));
+             if(!texted) {
+               let col = ctx.fillStyle;
+               ctx.fillStyle = "#000";
+               ctx.fillText(age,x,canvas.height-15);
+               ctx.fillStyle = col;
+
+             }
+             x+= 50;
+
+           })
+           originalx += 7;
+           x = originalx;
+           texted = true;
+         });
+
+         let y = 50;
+         for(let colorData of colors){
+           ctx.fillStyle = colorData[1];
+           ctx.fillRect(500,y,10,10);
+           ctx.fillStyle = "#000";
+           ctx.fillText(muncipalities.get(colorData[0]),520,y+6);
+           y+= 20;
+         }
+
+
+       });
+
+       function randomColor(){
+  return "rgb("+parseInt(50+Math.random()*200)+","+parseInt(50+Math.random()*200)+","+parseInt(50+Math.random()*200)+")";
+}
 
 
     /*  function setup(){
